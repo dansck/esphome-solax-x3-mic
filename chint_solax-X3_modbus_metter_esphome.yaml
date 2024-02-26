@@ -1,0 +1,1004 @@
+esphome:
+  name: chint_solax-X3_modbus_metter_esphome
+  friendly_name: chint_solax-X3_modbus_metter_esphome
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino #esp-idf
+    #version: recommended
+
+# Enable logging
+logger:
+  baud_rate: 0
+  level: ERROR
+  #level: debug
+  logs:
+    component: ERROR
+  #  modbus_controller: info
+  #  uart: debug
+  #  sensor: info
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "xxxxxx"
+
+ota:
+  password: "xxxxxx"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+#esp32_ble_tracker:
+#bluetooth_proxy:
+#  active: true
+
+external_components:
+  #- source: github://epiclabs-io/esphome-modbus-server@master
+  - source: github://dansck/esphome-solax-x3-mic@main
+    refresh: 60s
+    components:
+      - solax_meter_gateway
+      - solax_meter_modbus
+
+button:
+  - platform: restart
+    name: "Rozvadec Restart"
+binary_sensor:
+  - platform: status
+    name: "Rozvadec Status"
+    id: available
+
+uart:
+  - id: uart_slave
+    tx_pin: GPIO17 #D17
+    rx_pin: GPIO16 #D16
+    baud_rate: 9600
+    stop_bits: 1
+    data_bits: 8
+    parity: NONE
+    debug:
+      direction: BOTH
+      dummy_receiver: true
+      after:
+        timeout: 1ms
+      sequence:
+        - lambda: UARTDebug::log_hex(direction, bytes, ':');
+
+  - id: uart_master
+    tx_pin: GPIO1 # 485 DI 
+    rx_pin: GPIO3 # 485 RO # GPIO27 flow_pin
+    baud_rate: 9600
+    stop_bits: 1
+    data_bits: 8
+    parity: NONE
+    debug:
+      direction: BOTH
+      dummy_receiver: true
+      after:
+        timeout: 1ms
+      sequence:
+        - lambda: UARTDebug::log_hex(direction, bytes, '-');
+  
+modbus:
+  - id: modb_master
+    uart_id: uart_master
+    disable_crc: false
+    flow_control_pin: GPIO27
+    send_wait_time: 500ms
+
+modbus_controller:
+  - id: chint
+    address: 0x2
+    modbus_id: modb_master
+    setup_priority: -10
+    command_throttle: 200ms
+    update_interval: 1s
+  
+  - id: solax
+    address: 0x3
+    modbus_id: modb_master
+    setup_priority: -10
+    command_throttle: 200ms
+    update_interval: 11s
+    #offline_skip_updates: 30
+
+solax_meter_modbus:
+  - id: modb_slave
+    uart_id: uart_slave
+#    #flow_control_pin: GPIO0
+solax_meter_gateway:
+  solax_meter_modbus_id: modb_slave
+  address: 0x01
+  # The state of this sensor (instantaneous power in watt) is used as source
+  power_id: grid_Total_System_Active_Power
+  power_sensor_inactivity_timeout: 5s
+  update_interval: 1s
+
+text_sensor:
+  - platform: solax_meter_gateway
+    operation_mode:
+      name: "metergw operation mode"
+  
+switch:
+  - platform: solax_meter_gateway
+    emergency_power_off:
+      name: "metergw emergency power off"
+      restore_mode: RESTORE_DEFAULT_OFF
+
+sensor:
+  
+  - platform: solax_meter_gateway
+    power_demand:
+      name: "metergw power demand"
+
+  #### CHINT #### https://github.com/elfabriceu/DTSU666-Modbus/blob/main/plugin.py
+ # - platform: modbus_controller
+ #   modbus_controller_id: chint
+ #   name: "endian"
+ #   id: endian
+ #   register_type: holding
+ #   address: 0x000C
+ #   #unit_of_measurement: "V"
+ #   value_type: FP32
+
+ # - platform: modbus_controller
+ #   modbus_controller_id: chint
+ #   name: "Volts_CA"
+ #   id: Volts_CA
+ #   register_type: holding
+ #   address: 0x2004
+ #   unit_of_measurement: "V"
+ #   device_class: voltage
+ #   state_class: measurement
+ #   value_type: FP32
+ #   accuracy_decimals: 2
+ #   filters:
+ #     - multiply: 0.1
+  
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Voltage_L1"
+    id: grid_Voltage_L1
+    register_type: holding
+    address: 0x2006
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Voltage_L2"
+    id: grid_Voltage_L2
+    register_type: holding
+    address: 0x2008
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Voltage_L3"
+    id: grid_Voltage_L3
+    register_type: holding
+    address: 0x200A
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Current_L1"
+    id: grid_Current_L1
+    register_type: holding
+    address: 0x200C
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Current_L2"
+    id: grid_Current_L2
+    register_type: holding
+    address: 0x200E
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Current_L3"
+    id: grid_Current_L3
+    register_type: holding
+    address: 0x2010
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total System Active Power"
+    id: grid_Total_System_Active_Power
+    register_type: holding
+    address: 0x2012
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 1
+
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Active Power L1"
+    id: grid_Active_Power_L1
+    register_type: holding
+    address: 0x2014
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Active Power L2"
+    id: grid_Active_Power_L2
+    register_type: holding
+    address: 0x2016
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Active Power L3"
+    id: grid_Active_Power_L3
+    register_type: holding
+    address: 0x2018
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 1
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total System Reactive Power"
+    id: grid_Total_System_Reactive_Power
+    register_type: holding
+    address: 0x201A
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 0
+   
+    
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Reactive Power L1"
+    id: grid_Reactive_Power_L1
+    register_type: holding
+    address: 0x201C
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 0
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Reactive Power L2"
+    id: grid_Reactive_Power_L2
+    register_type: holding
+    address: 0x201E
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 0
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Reactive Power L3"
+    id: grid_Reactive_Power_L3
+    register_type: holding
+    address: 0x2020
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+      - round: 0
+
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total System Power Faktor"
+    id: grid_Total_System_Power_Factor
+    skip_updates: 600
+    register_type: holding
+    address: 0x202A
+    unit_of_measurement: "delta"
+    #device_class: power
+    state_class: measurement
+    value_type: FP32
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+
+#  - platform: modbus_controller
+#    modbus_controller_id: chint
+#    name: "Grid Power Factor L1"
+#    id: grid_Power_Factor_L1
+#    register_type: holding
+#    address: 0x202C
+#    unit_of_measurement: "delta"
+#    #device_class: power
+#    state_class: measurement
+#    value_type: FP32
+#    accuracy_decimals: 2
+#    filters:
+#      - multiply: 0.001
+#  - platform: modbus_controller
+#    modbus_controller_id: chint
+#    name: "Grid Power Factor L2"
+#    id: grid_Power_Factor_L2
+#    register_type: holding
+#    address: 0x202E
+#    unit_of_measurement: "delta"
+#    #device_class: power
+#    state_class: measurement
+#    value_type: FP32
+#    accuracy_decimals: 2
+#    filters:
+#      - multiply: 0.001
+#  - platform: modbus_controller
+#    modbus_controller_id: chint
+#    name: "Grid Power Factor L3"
+#    id: grid_Power_Factor_L3
+#    register_type: holding
+#    address: 0x2030
+#    unit_of_measurement: "delta"
+#    #device_class: power
+#    state_class: measurement
+#    value_type: FP32
+#    accuracy_decimals: 2
+#    filters:
+#      - multiply: 0.001
+  
+  
+  #- platform: modbus_controller
+  #  modbus_controller_id: chint
+  #  name: "Grid Frequency Of Supply Voltages"
+  #  id: grid_Frequency_Of_Supply_Voltages
+  #  register_type: holding
+  #  address: 0x2044
+  #  unit_of_measurement: "Hz"
+  #  device_class: frequency
+  #  state_class: measurement
+  #  value_type: FP32
+  #  accuracy_decimals: 2
+  #  filters:
+  #    - multiply: 0.01
+
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total import kwh"
+    id: grid_Total_import_kwh
+    skip_updates: 30
+    register_type: holding
+    address: 0x401E
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total increasing
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total Export_kwh"
+    id: grid_Total_export_kwh
+    skip_updates: 30
+    register_type: holding
+    address: 0x4028
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total increasing
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total Q1 kvarh"
+    id: grid_Total_Q1_kvarh
+    skip_updates: 601
+    register_type: holding
+    address: 0x4032
+    unit_of_measurement: "kvarh"
+    #device_class: energy
+    state_class: measurement
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total Q2 kvarh"
+    id: grid_Total_Q2_kvarh
+    skip_updates: 602
+    register_type: holding
+    address: 0x403C
+    unit_of_measurement: "kvarh"
+    #device_class: energy
+    state_class: measurement
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total Q3 kvarh"
+    skip_updates: 603
+    id: grid_Total_Q3_kvarh
+    register_type: holding
+    address: 0x4046
+    unit_of_measurement: "kvarh"
+    #device_class: energy
+    state_class: measurement
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+  - platform: modbus_controller
+    modbus_controller_id: chint
+    name: "Grid Total Q4 kvarh"
+    id: grid_Total_Q4_kvarh
+    skip_updates: 604
+    register_type: holding
+    address: 0x4050
+    unit_of_measurement: "kvarh"
+    #device_class: energy
+    state_class: measurement
+    value_type: FP32
+    #accuracy_decimals: 2
+    #filters:
+    #  - multiply: 1000
+
+
+##### SOLAX #####
+   
+ #PV voltage
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0400
+    name: "solax Pv1 input voltage"
+    id: pv1_input_voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0401
+    name: "solax Pv2 input voltage"
+    id: pv2_input_voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  #PV current
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0402
+    name: "solax Pv1 input current"
+    id: pv1_input_current
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0403
+    name: "solax Pv2 input current"
+    id: pv2_input_current
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  # grid voltage
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0404
+    name: "solax Grid Voltage Phase 1"
+    id: grid_voltage_phase_1
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0405
+    name: "solax Grid Voltage Phase 2"
+    id: grid_voltage_phase_2
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0406
+    name: "solax Grid Voltage Phase 3"
+    id: grid_voltage_phase_3
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  #grid freq
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0407
+    name: "solax Grid Frequency Phase 1"
+    id: grid_frequency_phase_1
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0408
+    name: "solax Grid Frequency Phase 2"
+    id: grid_frequency_phase_2
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0409
+    name: "solax Grid Frequency Phase 3"
+    id: grid_frequency_phase_3
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+  #output current
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040A
+    name: "solax Output Current Phase 1"
+    id: output_current_phase_1
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040B
+    name: "solax Output Current Phase 2"
+    id: output_current_phase_2
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040C
+    name: "solax Output Current Phase 3"
+    id: output_current_phase_3
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  # inverter
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040D
+    name: "solax Temperature"
+    id: Temperature
+    unit_of_measurement: "C"
+    device_class: temperature
+    state_class: measurement
+    value_type: U_WORD
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040E
+    name: "solax Inverter Power"
+    id: inverter_power
+    unit_of_measurement: "W"
+    value_type: U_WORD
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x040F
+    name: "solax RunMode"
+    id: runmode
+    unit_of_measurement: ""
+    value_type: U_WORD
+  # output power
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0410
+    name: "solax Output Power Phase 1"
+    id: output_power_phase_1
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: U_WORD
+    filters:
+      - round: 0
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0411
+    name: "solax Output Power Phase 2"
+    id: output_power_phase_2
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: U_WORD
+    filters:
+      - round: 0
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0412
+    name: "solax Output Power Phase 3"
+    id: output_power_phase_3
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: U_WORD
+    filters:
+      - round: 0
+  ## ???
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0413
+    name: "solax neco1"
+    id: neco1
+    unit_of_measurement: ""
+    value_type: U_WORD
+    internal: true
+
+  - platform: template
+    name: "solax Output Power"
+    id: solax_output_power
+    lambda: |-
+      return (id(output_power_phase_1).state + id(output_power_phase_2).state + id(output_power_phase_3).state);
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    update_interval: 1s
+    filters:
+      - round: 0
+  # PV power
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0414
+    name: "solax PV1 DC Power"
+    id: PV1_DC_Power
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: U_WORD
+    filters:
+      - round: 0
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0415
+    name: "solax PV2 DC Power"
+    id: PV2_DC_Power
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    value_type: U_WORD
+    filters:
+      - round: 0
+  
+    # FAULT
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0416
+    name: "solax Fault value of Phase 1 Voltage"
+    id: Fault_value_Phase_1_Voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0417
+    name: "solax Fault value of Phase 2 Voltage"
+    id: Fault_value_Phase_2_Voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0418
+    name: "solax Fault value of Phase 3 Voltage"
+    id: Fault_value_Phase_3_Voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0419
+    name: "solax Fault value of Phase 1 Frequency"
+    id: Fault_value_Phase_1_Frequency
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041A
+    name: "solax Fault value of Phase 2 Frequency"
+    id: Fault_value_Phase_2_Frequency
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041B
+    name: "solax Fault value of Phase 3 Frequency"
+    id: Fault_value_Phase_3_Frequency
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041C
+    name: "solax Fault value of Phase 1 DCI"
+    id: Fault_value_Phase_1_DCI
+    unit_of_measurement: ""
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041D
+    name: "solax Fault value of Phase 2 DCI"
+    id: Fault_value_Phase_2_DCI
+    unit_of_measurement: ""
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041E
+    name: "solax Fault value of Phase 3 DCI"
+    id: Fault_value_Phase_3_DCI
+    unit_of_measurement: ""
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+  
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x041F
+    name: "solax Fault value of PV1 Voltage"
+    id: Fault_value_PV1_Voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0420
+    name: "solax Fault value of PV2 Voltage"
+    id: Fault_value_PV2_Voltage
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0421
+    name: "solax Fault value of Temperature"
+    id: Fault_value_Temperature
+    unit_of_measurement: "C"
+    device_class: temperature
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0422
+    name: "solax Fault value of GFCI"
+    id: Fault_value_GFCI
+    unit_of_measurement: ""
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  #Yield
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0423
+    name: "solax Yield Total kWh"
+    id: Yield_Total_kwh
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total_increasing
+    value_type: U_DWORD_R
+    #skip_updates: 300
+    accuracy_decimals: 0
+    internal: false
+    filters:
+      - multiply: 0.001
+      - clamp:
+         min_value: 10
+         ignore_out_of_range: true
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    register_type: read
+    address: 0x0425
+    name: "solax Yield Today kWh"
+    id: Yield_Today_kwh
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total_increasing
+    value_type: U_DWORD_R
+    #skip_updates: 300
+    accuracy_decimals: 0
+    internal: false
+    filters:
+      - multiply: 0.001
+  
+    
