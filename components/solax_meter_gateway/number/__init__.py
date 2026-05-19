@@ -1,15 +1,12 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import number
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ICON,
-    CONF_ID,
     CONF_INITIAL_VALUE,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_RESTORE_VALUE,
     CONF_STEP,
-    CONF_UNIT_OF_MEASUREMENT,
     UNIT_WATT,
 )
 
@@ -60,10 +57,12 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_SOLAX_METER_GATEWAY_ID): cv.use_id(SolaxMeterGateway),
         cv.Optional(CONF_MANUAL_POWER_DEMAND): cv.All(
-            number.NUMBER_SCHEMA.extend(
+            number.number_schema(
+                SolaxNumber,
+                icon=ICON_MANUAL_POWER_DEMAND,
+                unit_of_measurement=UNIT_WATT,
+            ).extend(
                 {
-                    cv.GenerateID(): cv.declare_id(SolaxNumber),
-                    cv.Optional(CONF_ICON, default=ICON_MANUAL_POWER_DEMAND): cv.icon,
                     cv.Optional(
                         CONF_MIN_VALUE, default=DEFAULT_MIN_POWER_DEMAND
                     ): cv.float_,
@@ -71,13 +70,10 @@ CONFIG_SCHEMA = cv.Schema(
                         CONF_MAX_VALUE, default=DEFAULT_MAX_POWER_DEMAND
                     ): cv.float_,
                     cv.Optional(CONF_STEP, default=DEFAULT_STEP): cv.float_,
-                    cv.Optional(
-                        CONF_UNIT_OF_MEASUREMENT, default=UNIT_WATT
-                    ): cv.string_strict,
                     cv.Optional(CONF_INITIAL_VALUE): cv.float_,
                     cv.Optional(CONF_RESTORE_VALUE, default=False): cv.boolean,
                 }
-            ).extend(cv.COMPONENT_SCHEMA),
+            ),
             validate_min_max,
             validate,
         ),
@@ -90,15 +86,13 @@ async def to_code(config):
     for key, address in NUMBERS.items():
         if key in config:
             conf = config[key]
-            var = cg.new_Pvariable(conf[CONF_ID])
-            await cg.register_component(var, conf)
-            await number.register_number(
-                var,
+            var = await number.new_number(
                 conf,
                 min_value=conf[CONF_MIN_VALUE],
                 max_value=conf[CONF_MAX_VALUE],
                 step=conf[CONF_STEP],
             )
+            await cg.register_component(var, conf)
             cg.add(getattr(hub, f"set_{key}_number")(var))
             cg.add(var.set_parent(hub))
             cg.add(var.set_initial_value(conf[CONF_INITIAL_VALUE]))

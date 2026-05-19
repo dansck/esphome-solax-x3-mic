@@ -1,11 +1,12 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ICON, CONF_ID
+from esphome.const import ENTITY_CATEGORY_DIAGNOSTIC
 
-from . import CONF_SOLAX_X1_MINI_ID, SolaxX1Mini
+from . import CONF_SOLAX_X1_MINI_COMPONENT_SCHEMA, CONF_SOLAX_X1_MINI_ID
 
 DEPENDENCIES = ["solax_x1_mini"]
+CODEOWNERS = ["@syssi"]
 
 CONF_MODE_NAME = "mode_name"
 CONF_ERRORS = "errors"
@@ -13,20 +14,14 @@ CONF_ERRORS = "errors"
 ICON_MODE_NAME = "mdi:heart-pulse"
 ICON_ERRORS = "mdi:alert-circle-outline"
 
-CONFIG_SCHEMA = cv.Schema(
+CONFIG_SCHEMA = CONF_SOLAX_X1_MINI_COMPONENT_SCHEMA.extend(
     {
-        cv.GenerateID(CONF_SOLAX_X1_MINI_ID): cv.use_id(SolaxX1Mini),
-        cv.Optional(CONF_MODE_NAME): text_sensor.TEXT_SENSOR_SCHEMA.extend(
-            {
-                cv.GenerateID(): cv.declare_id(text_sensor.TextSensor),
-                cv.Optional(CONF_ICON, default=ICON_MODE_NAME): cv.icon,
-            }
+        cv.Optional(CONF_MODE_NAME): text_sensor.text_sensor_schema(
+            icon=ICON_MODE_NAME
         ),
-        cv.Optional(CONF_ERRORS): text_sensor.TEXT_SENSOR_SCHEMA.extend(
-            {
-                cv.GenerateID(): cv.declare_id(text_sensor.TextSensor),
-                cv.Optional(CONF_ICON, default=ICON_ERRORS): cv.icon,
-            }
+        cv.Optional(CONF_ERRORS): text_sensor.text_sensor_schema(
+            icon=ICON_ERRORS,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
     }
 )
@@ -37,6 +32,5 @@ async def to_code(config):
     for key in [CONF_MODE_NAME, CONF_ERRORS]:
         if key in config:
             conf = config[key]
-            sens = cg.new_Pvariable(conf[CONF_ID])
-            await text_sensor.register_text_sensor(sens, conf)
+            sens = await text_sensor.new_text_sensor(conf)
             cg.add(getattr(hub, f"set_{key}_text_sensor")(sens))

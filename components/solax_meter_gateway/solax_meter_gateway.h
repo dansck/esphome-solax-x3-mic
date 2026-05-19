@@ -7,8 +7,7 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/solax_meter_modbus/solax_meter_modbus.h"
 
-namespace esphome {
-namespace solax_meter_gateway {
+namespace esphome::solax_meter_gateway {
 
 class SolaxMeterGateway : public PollingComponent, public solax_meter_modbus::SolaxMeterModbusDevice {
  public:
@@ -42,24 +41,25 @@ class SolaxMeterGateway : public PollingComponent, public solax_meter_modbus::So
   float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
-  number::Number *manual_power_demand_number_;
+  number::Number *manual_power_demand_number_{nullptr};
 
-  sensor::Sensor *power_sensor_;
-  sensor::Sensor *power_demand_sensor_;
+  sensor::Sensor *power_sensor_{nullptr};
+  sensor::Sensor *power_demand_sensor_{nullptr};
 
-  switch_::Switch *manual_mode_switch_;
-  switch_::Switch *emergency_power_off_switch_;
+  switch_::Switch *manual_mode_switch_{nullptr};
+  switch_::Switch *emergency_power_off_switch_{nullptr};
 
-  text_sensor::TextSensor *operation_mode_text_sensor_;
+  text_sensor::TextSensor *operation_mode_text_sensor_{nullptr};
 
   float power_demand_;
   uint16_t power_sensor_inactivity_timeout_s_{0};
+  uint16_t solax_request_inactivity_timeout_s_{10};
   uint32_t last_power_demand_received_{0};
+  uint32_t last_solax_request_received_{0};
 
   void publish_state_(sensor::Sensor *sensor, float value);
   void publish_state_(text_sensor::TextSensor *text_sensor, const std::string &state);
   bool inactivity_timeout_();
 };
 
-}  // namespace solax_meter_gateway
-}  // namespace esphome
+}  // namespace esphome::solax_meter_gateway

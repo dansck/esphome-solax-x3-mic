@@ -1,8 +1,7 @@
 #include "solax_meter_gateway.h"
 #include "esphome/core/log.h"
 
-namespace esphome {
-namespace solax_meter_gateway {
+namespace esphome::solax_meter_gateway {
 
 static const char *const TAG = "solax_meter_gateway";
 
@@ -14,6 +13,8 @@ static const uint8_t REGISTER_READ_TOTAL_ENERGY_IMPORT_32BIT_FLOAT = 0x48;
 static const uint8_t REGISTER_READ_TOTAL_ENERGY_EXPORT_32BIT_FLOAT = 0x4A;
 
 void SolaxMeterGateway::on_solax_meter_modbus_data(const std::vector<uint8_t> &data) {
+  this->last_power_demand_received_ = millis();
+
   if (this->inactivity_timeout_()) {
     this->publish_state_(this->operation_mode_text_sensor_, "Meter fault");
     this->publish_state_(power_demand_sensor_, NAN);
@@ -82,7 +83,7 @@ void SolaxMeterGateway::on_solax_meter_modbus_data(const std::vector<uint8_t> &d
       ESP_LOGW(TAG, "Your device is probably not supported. Please create an issue here: "
                     "https://github.com/syssi/esphome-solax-x1-mini/issues");
       ESP_LOGW(TAG, "Please provide the following request data: %s",
-               format_hex_pretty(&data.front(), data.size()).c_str());
+               format_hex_pretty(&data.front(), data.size()).c_str());  // NOLINT
   }
 }
 
@@ -100,8 +101,8 @@ void SolaxMeterGateway::setup() {
 
     this->power_demand_ = state;
     this->last_power_demand_received_ = millis();
-    ESP_LOGVV(TAG, "New power demand received (%.2f). Resetting inactivity timeout (%d)", this->power_demand_,
-              this->last_power_demand_received_);
+    ESP_LOGVV(TAG, "New power demand received (%.2f). Resetting inactivity timeout (%lu)", this->power_demand_,
+              (unsigned long) this->last_power_demand_received_);
   });
 }
 
@@ -112,7 +113,12 @@ void SolaxMeterGateway::dump_config() {
   LOG_TEXT_SENSOR("  ", "Operation name", this->operation_mode_text_sensor_);
 }
 
-void SolaxMeterGateway::update() {}
+void SolaxMeterGateway::update() {
+  if (millis() - this->last_solax_request_received_ > (this->solax_request_inactivity_timeout_s_ * 1000)) {
+    this->publish_state_(this->operation_mode_text_sensor_, "Standby");
+    ESP_LOGI(TAG, "No solax request received. Is the inverter online and export control mode 'meter' enabled?");
+  }
+}
 
 bool SolaxMeterGateway::inactivity_timeout_() {
   if (this->power_sensor_inactivity_timeout_s_ == 0) {
@@ -141,5 +147,4 @@ void SolaxMeterGateway::publish_state_(text_sensor::TextSensor *text_sensor, con
   text_sensor->publish_state(state);
 }
 
-}  // namespace solax_meter_gateway
-}  // namespace esphome
+}  // namespace esphome::solax_meter_gateway

@@ -5,8 +5,7 @@
 
 #include <vector>
 
-namespace esphome {
-namespace solax_meter_modbus {
+namespace esphome::solax_meter_modbus {
 
 class SolaxMeterModbusDevice;
 
@@ -43,9 +42,9 @@ class SolaxMeterModbusDevice {
   void set_parent(SolaxMeterModbus *parent) { parent_ = parent; }
   void set_address(uint8_t address) { address_ = address; }
   virtual void on_solax_meter_modbus_data(const std::vector<uint8_t> &data) = 0;
-  void send(int16_t power) { this->parent_->send(this->address_, power); }
-  void send(float power) { this->parent_->send(this->address_, power); }
-  void send_raw(const std::vector<uint8_t> &payload) { this->parent_->send_raw(payload); }
+  virtual void send(int16_t power) { this->parent_->send(this->address_, power); }
+  virtual void send(float power) { this->parent_->send(this->address_, power); }
+  virtual void send_raw(const std::vector<uint8_t> &payload) { this->parent_->send_raw(payload); }
 
  protected:
   friend SolaxMeterModbus;
@@ -54,5 +53,4 @@ class SolaxMeterModbusDevice {
   uint8_t address_;
 };
 
-}  // namespace solax_meter_modbus
-}  // namespace esphome
+}  // namespace esphome::solax_meter_modbus

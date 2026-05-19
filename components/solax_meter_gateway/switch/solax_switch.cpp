@@ -2,8 +2,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 
-namespace esphome {
-namespace solax_meter_gateway {
+namespace esphome::solax_meter_gateway {
 
 static const char *const TAG = "solax_meter_gateway.switch";
 
@@ -34,7 +33,8 @@ void SolaxSwitch::setup() {
 }
 void SolaxSwitch::dump_config() {
   LOG_SWITCH("", "SolaxMeterGateway Switch", this);
-  const LogString *restore_mode = LOG_STR("");
+  // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+  const LogString *restore_mode = LOG_STR("Unknown");
   switch (this->restore_mode_) {
     case SOLAX_SWITCH_RESTORE_DEFAULT_OFF:
       restore_mode = LOG_STR("Restore (Defaults to OFF)");
@@ -53,5 +53,4 @@ void SolaxSwitch::dump_config() {
 }
 void SolaxSwitch::write_state(bool state) { this->publish_state(state); }
 
-}  // namespace solax_meter_gateway
-}  // namespace esphome
+}  // namespace esphome::solax_meter_gateway

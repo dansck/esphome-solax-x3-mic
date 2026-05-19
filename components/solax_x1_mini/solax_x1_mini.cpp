@@ -1,8 +1,7 @@
 #include "solax_x1_mini.h"
 #include "esphome/core/log.h"
 
-namespace esphome {
-namespace solax_x1_mini {
+namespace esphome::solax_x1_mini {
 
 static const char *const TAG = "solax_x1_mini";
 
@@ -13,7 +12,7 @@ static const uint8_t FUNCTION_CONFIG_SETTINGS = 0x84;
 // SolaxPower Single Phase External Communication Protocol - X1 Series V1.2.pdf
 // SolaxPower Single Phase External Communication Protocol - X1 Series V1.8.pdf
 static const uint8_t MODES_SIZE = 7;
-static const std::string MODES[MODES_SIZE] = {
+static constexpr const char *const MODES[MODES_SIZE] = {
     "Wait",             // 0
     "Check",            // 1
     "Normal",           // 2
@@ -25,7 +24,7 @@ static const std::string MODES[MODES_SIZE] = {
 
 // SolaxPower Single Phase External Communication Protocol - X1 Series V1.8.pdf
 static const uint8_t ERRORS_SIZE = 32;
-static const char *const ERRORS[ERRORS_SIZE] = {
+static constexpr const char *const ERRORS[ERRORS_SIZE] = {
     "TZ Protect Fault",                          // 0000 0000 0000 0000 0000 0000 0000 0001 (1)
     "Grid Lost Fault",                           // 0000 0000 0000 0000 0000 0000 0000 0010 (2)
     "Grid Voltage Fault",                        // 0000 0000 0000 0000 0000 0000 0000 0100 (3)
@@ -72,7 +71,7 @@ void SolaxX1Mini::on_solax_modbus_data(const uint8_t &function, const std::vecto
       this->decode_config_settings_(data);
       break;
     default:
-      ESP_LOGW(TAG, "Unhandled solax frame: %s", format_hex_pretty(&data.front(), data.size()).c_str());
+      ESP_LOGW(TAG, "Unhandled solax frame: %s", format_hex_pretty(&data.front(), data.size()).c_str());  // NOLINT
   }
 }
 
@@ -207,7 +206,7 @@ void SolaxX1Mini::decode_status_report_(const std::vector<uint8_t> &data) {
     ESP_LOGW(TAG, "Your device is probably not supported. Please create an issue here: "
                   "https://github.com/syssi/esphome-solax-x1-mini/issues");
     ESP_LOGW(TAG, "Please provide the following status response data: %s",
-             format_hex_pretty(&data.front(), data.size()).c_str());
+             format_hex_pretty(&data.front(), data.size()).c_str());  // NOLINT
     return;
   }
 
@@ -350,7 +349,7 @@ void SolaxX1Mini::dump_config() {
 }
 
 std::string SolaxX1Mini::error_bits_to_string_(const uint32_t mask) {
-  std::string values = "";
+  std::string values;
   if (mask) {
     for (int i = 0; i < ERRORS_SIZE; i++) {
       if (mask & (1 << i)) {
@@ -365,5 +364,4 @@ std::string SolaxX1Mini::error_bits_to_string_(const uint32_t mask) {
   return values;
 }
 
-}  // namespace solax_x1_mini
-}  // namespace esphome
+}  // namespace esphome::solax_x1_mini

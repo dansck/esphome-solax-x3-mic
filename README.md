@@ -22,7 +22,7 @@ ESPHome component to monitor a Solax X1 mini via RS485.
 
 ## Requirements
 
-* [ESPHome 1.18.0 or higher](https://github.com/esphome/esphome/releases).
+* [ESPHome 2024.6.0 or higher](https://github.com/esphome/esphome/releases).
 * One half of an ethernet cable with RJ45 connector
 * RS485-to-TTL module (`HW-0519` f.e.)
 * Generic ESP32 or ESP8266 board
@@ -112,8 +112,8 @@ For a more advanced setup take a look at the [esp32-example-advanced-multiple-ua
 
 ## Known issues
 
-All known firmware versions (`V1.00`) responds with the same serial number (`3132333435363737363534333231`) to the discovery 
-broadcast (`AA.55.01.00.00.00.10.00.00.01.10`). For this reason it's challenging to use multiple devices on the same bus and 
+All known firmware versions (`V1.00`) responds with the same serial number (`3132333435363737363534333231`) to the discovery
+broadcast (`AA.55.01.00.00.00.10.00.00.01.10`). For this reason it's challenging to use multiple devices on the same bus and
 assign an individual address per device.
 
 Affected firmware versions:
@@ -136,8 +136,8 @@ logger:
 uart:
   id: uart_0
   baud_rate: 9600
-  tx_pin: GPIO4
-  rx_pin: GPIO5
+  tx_pin: ${tx_pin}
+  rx_pin: ${rx_pin}
   debug:
     direction: BOTH
 ```

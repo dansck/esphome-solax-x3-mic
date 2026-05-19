@@ -17,7 +17,8 @@ solax_modbus_ns = cg.esphome_ns.namespace("solax_modbus")
 SolaxModbus = solax_modbus_ns.class_("SolaxModbus", cg.Component, uart.UARTDevice)
 SolaxModbusDevice = solax_modbus_ns.class_("SolaxModbusDevice")
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
+    cv.require_esphome_version(2024, 6, 0),
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SolaxModbus),
@@ -25,7 +26,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(uart.UART_DEVICE_SCHEMA)
+    .extend(uart.UART_DEVICE_SCHEMA),
 )
 
 
@@ -78,9 +79,9 @@ def solax_modbus_device_schema(default_address, default_serial):
     if default_address is None:
         schema[cv.Required(CONF_SERIAL_NUMBER)] = validate_serial_number
     else:
-        schema[
-            cv.Optional(CONF_SERIAL_NUMBER, default=default_serial)
-        ] = validate_serial_number
+        schema[cv.Optional(CONF_SERIAL_NUMBER, default=default_serial)] = (
+            validate_serial_number
+        )
 
     return cv.Schema(schema)
 

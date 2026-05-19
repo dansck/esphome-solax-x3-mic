@@ -14,12 +14,19 @@ SolaxX1Mini = solax_x1_mini_ns.class_(
     "SolaxX1Mini", cg.PollingComponent, solax_modbus.SolaxModbusDevice
 )
 
-CONFIG_SCHEMA = (
+CONF_SOLAX_X1_MINI_COMPONENT_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_SOLAX_X1_MINI_ID): cv.use_id(SolaxX1Mini),
+    }
+)
+
+CONFIG_SCHEMA = cv.All(
+    cv.require_esphome_version(2024, 6, 0),
     cv.Schema({cv.GenerateID(): cv.declare_id(SolaxX1Mini)})
     .extend(cv.polling_component_schema("30s"))
     .extend(
         solax_modbus.solax_modbus_device_schema(0x0A, "3132333435363737363534333231")
-    )
+    ),
 )
 
 
